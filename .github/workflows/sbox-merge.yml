@@ -1,0 +1,36 @@
+name: Deploy to Tomcat
+
+on:
+  push:
+    branches:
+      - sbox
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'zulu'
+
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      - name: Deploy to Tomcat
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ vars.SBOX_SERVER_IP }}
+          username: ${{ vars.SBOX_SSH_USER_NAME }}
+          password: ${{ secrets.SBOX_SSH_PASSWORD }}
+          script: |
+            sudo systemctl stop tomcat
+            cp /github/workspace/target/Customer.war Customer.war
+            sudo systemctl start tomcat
